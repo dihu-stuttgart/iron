@@ -2567,7 +2567,30 @@ CONTAINS
     TYPE(FIELD_TYPE), POINTER :: MODELS_FIELD,STATE_FIELD,PARAMETERS_FIELD,INTERMEDIATE_FIELD
     TYPE(SOLVER_TYPE), POINTER :: SOLVER
     TYPE(VARYING_STRING) :: LOCAL_ERROR
-
+    
+    ! This is to circumvent main computation parts. Only For Development Purpose. Not For Release Mode. --------------------------.
+    REAL(DP) :: COMPLETE_TIME
+    ! ----------------------------------------------------------------------------------------------------------------------------|
+    !MODIFY THE NEXT TWO AS NEEDED. Exclusive choice:(KEEP_STATE OR ROUGH_GUESS. if none -> default = unchanged, normal mode)     |
+    LOGICAL :: KEEP_STATE = .FALSE.             ! Doesn't do anything.             - ABSOLUTELY WRONG.
+    LOGICAL :: ROUGH_GUESS = .FALSE.            ! Performs exactly one euler step. - VERY  INACCURATE.
+    !To prevent to have to compile IRON every time after reconfigureing these, one could add a "case marker" to (e.g.) the type   |
+    !FORWARD_EULER_DAE_SOLVER_TYPE, and set it up more dynamically.                                                               |
+    ! ----------------------------------------------------------------------------------------------------------------------------|
+    IF(KEEP_STATE .AND. ROUGH_GUESS) THEN !                                                                                  -----|
+      PRINT *, "Stop in SUBROUTINE SOLVER_DAE_EULER_FORWARD_SOLVE. Logicals KEEP_STATE and ROUGH_GUESS can't be used at once."    !
+      STOP!-----------------------------------------------------------------------------------------------------------------------|
+    ELSE IF(KEEP_STATE) THEN !                                                                                               -----|
+      PRINT *, "SUBROUTINE SOLVER_DAE_EULER_FORWARD_SOLVE: ----------------------------------------------"                        !
+      PRINT *, "   CellML evolution shut down. Results will be of no physical account."                                           !
+    !(output continued later) PRINT *, "-----------------------------------------------------------------------------------------"!
+    ELSE IF(ROUGH_GUESS) THEN !                                                                                              -----|
+      PRINT *, "SUBROUTINE SOLVER_DAE_EULER_FORWARD_SOLVE: --------------------------------------------------------------------"  !
+      PRINT *, "   CellML evolution cut down drastically. Results may yield unphysical behaviour or even a numerical breakdown."  !
+      PRINT *, "---------------------------------------------------------------------------------------------------------------"  !
+    ENDIF !                                                                                                                 -----|
+    ! ----------------------------------------------------------------------------------------------------------------------------*
+  
     ENTERS("SOLVER_DAE_EULER_FORWARD_SOLVE",ERR,ERROR,*999)
 
     NULLIFY(MODELS_DATA)
@@ -2683,35 +2706,52 @@ CONTAINS
 #ifdef USE_CUSTOM_PROFILING
                       CALL CustomProfilingStart('1.1.4. cellml integrate')
 #endif
-
-                      !Integrate these CellML equations
-                      CALL SOLVER_DAE_EULER_FORWARD_INTEGRATE(FORWARD_EULER_SOLVER,CELLML_ENVIRONMENT,MODELS_VARIABLE% &
-                        & TOTAL_NUMBER_OF_DOFS,DAE_SOLVER%START_TIME,DAE_SOLVER%END_TIME,DAE_SOLVER%INITIAL_STEP, &
-                        & CELLML_ENVIRONMENT%MODELS_FIELD%ONLY_ONE_MODEL_INDEX,MODELS_DATA,CELLML_ENVIRONMENT% &
-                        & MAXIMUM_NUMBER_OF_STATE,STATE_DATA,CELLML_ENVIRONMENT%MAXIMUM_NUMBER_OF_PARAMETERS, &
-                        & PARAMETERS_DATA,CELLML_ENVIRONMENT%MAXIMUM_NUMBER_OF_INTERMEDIATE,INTERMEDIATE_DATA,ERR,ERROR,*999)
+                      
+                      IF(ROUGH_GUESS) THEN
+                        COMPLETE_TIME=DAE_SOLVER%END_TIME-DAE_SOLVER%START_TIME
+                        !Integrate these CellML equations with ONLY ONE EXPLICIT EULER STEP
+                        CALL SOLVER_DAE_EULER_FORWARD_INTEGRATE(FORWARD_EULER_SOLVER,CELLML_ENVIRONMENT,MODELS_VARIABLE% &
+                       & TOTAL_NUMBER_OF_DOFS,DAE_SOLVER%START_TIME,DAE_SOLVER%END_TIME,COMPLETE_TIME, &
+                          & CELLML_ENVIRONMENT%MODELS_FIELD%ONLY_ONE_MODEL_INDEX,MODELS_DATA,CELLML_ENVIRONMENT% &
+                          & MAXIMUM_NUMBER_OF_STATE,STATE_DATA,CELLML_ENVIRONMENT%MAXIMUM_NUMBER_OF_PARAMETERS, &
+                          & PARAMETERS_DATA,CELLML_ENVIRONMENT%MAXIMUM_NUMBER_OF_INTERMEDIATE,INTERMEDIATE_DATA,ERR,ERROR,*999)
+                      ELSE IF(.NOT. KEEP_STATE) THEN
+                        !NORMAL MODE (default)
+                        !Integrate these CellML equations
+                        CALL SOLVER_DAE_EULER_FORWARD_INTEGRATE(FORWARD_EULER_SOLVER,CELLML_ENVIRONMENT,MODELS_VARIABLE% &
+                          & TOTAL_NUMBER_OF_DOFS,DAE_SOLVER%START_TIME,DAE_SOLVER%END_TIME,DAE_SOLVER%INITIAL_STEP, &
+                          & CELLML_ENVIRONMENT%MODELS_FIELD%ONLY_ONE_MODEL_INDEX,MODELS_DATA,CELLML_ENVIRONMENT% &
+                          & MAXIMUM_NUMBER_OF_STATE,STATE_DATA,CELLML_ENVIRONMENT%MAXIMUM_NUMBER_OF_PARAMETERS, &
+                          & PARAMETERS_DATA,CELLML_ENVIRONMENT%MAXIMUM_NUMBER_OF_INTERMEDIATE,INTERMEDIATE_DATA,ERR,ERROR,*999)
+                      ENDIF
+                        !Nothing to do here, to perform no step.
 
 #ifdef USE_CUSTOM_PROFILING
-                      CALL CustomProfilingStop('1.1.4. cellml integrate')
+                        CALL CustomProfilingStop('1.1.4. cellml integrate')
 #endif
 #ifdef TAUPROF
-                      CALL TAU_STATIC_PHASE_STOP('1.1.4. cellml integrate')
-                      CALL TAU_STATIC_PHASE_START('1.1.5. cellml data restore')
+                        CALL TAU_STATIC_PHASE_STOP('1.1.4. cellml integrate')
+                        CALL TAU_STATIC_PHASE_START('1.1.5. cellml data restore')
 #endif
 #ifdef USE_CUSTOM_PROFILING
-                      CALL CustomProfilingStart('1.1.5. cellml data restore')
+                        CALL CustomProfilingStart('1.1.5. cellml data restore')
 #endif
-
-                      !Restore field data
-                      CALL FIELD_PARAMETER_SET_DATA_RESTORE(MODELS_FIELD,FIELD_U_VARIABLE_TYPE,FIELD_VALUES_SET_TYPE, &
-                        & MODELS_DATA,ERR,ERROR,*999)
-                      IF(ASSOCIATED(STATE_FIELD)) CALL FIELD_PARAMETER_SET_DATA_RESTORE(STATE_FIELD,FIELD_U_VARIABLE_TYPE, &
-                        & FIELD_VALUES_SET_TYPE,STATE_DATA,ERR,ERROR,*999)
-                      IF(ASSOCIATED(PARAMETERS_FIELD)) CALL FIELD_PARAMETER_SET_DATA_RESTORE(PARAMETERS_FIELD, &
-                        & FIELD_U_VARIABLE_TYPE,FIELD_VALUES_SET_TYPE,PARAMETERS_DATA,ERR,ERROR,*999)
-                      IF(ASSOCIATED(INTERMEDIATE_FIELD)) CALL FIELD_PARAMETER_SET_DATA_RESTORE(INTERMEDIATE_FIELD, &
-                        & FIELD_U_VARIABLE_TYPE,FIELD_VALUES_SET_TYPE,INTERMEDIATE_DATA,ERR,ERROR,*999)
-
+                      IF(.NOT. KEEP_STATE) THEN
+                        !Restore field data
+                        CALL FIELD_PARAMETER_SET_DATA_RESTORE(MODELS_FIELD,FIELD_U_VARIABLE_TYPE,FIELD_VALUES_SET_TYPE, &
+                          & MODELS_DATA,ERR,ERROR,*999)
+                        IF(ASSOCIATED(STATE_FIELD)) CALL FIELD_PARAMETER_SET_DATA_RESTORE(STATE_FIELD,FIELD_U_VARIABLE_TYPE, &
+                          & FIELD_VALUES_SET_TYPE,STATE_DATA,ERR,ERROR,*999)
+                        IF(ASSOCIATED(PARAMETERS_FIELD)) CALL FIELD_PARAMETER_SET_DATA_RESTORE(PARAMETERS_FIELD, &
+                          & FIELD_U_VARIABLE_TYPE,FIELD_VALUES_SET_TYPE,PARAMETERS_DATA,ERR,ERROR,*999)
+                        IF(ASSOCIATED(INTERMEDIATE_FIELD)) CALL FIELD_PARAMETER_SET_DATA_RESTORE(INTERMEDIATE_FIELD, &
+                          & FIELD_U_VARIABLE_TYPE,FIELD_VALUES_SET_TYPE,INTERMEDIATE_DATA,ERR,ERROR,*999)
+                      ELSE !This case may not need any treatment at all.
+                        ! output can be moved out of do loop. for now, keep it here, since we work with one cellml model -> loop done exactly once.
+                        PRINT *, "Not tested, yet: CellML intermediate and parameter field might need additional treatment."
+                        PRINT *, "-----------------------------------------------------------------------------------------"
+                      ENDIF
+                        
 #ifdef USE_CUSTOM_PROFILING
                       CALL CustomProfilingStop('1.1.5. cellml data restore')
 #endif
@@ -2722,10 +2762,11 @@ CONTAINS
 #ifdef USE_CUSTOM_PROFILING
                       CALL CustomProfilingStart('1.1.6. cellml field update')
 #endif
-
-                      !Make sure fields have been updated to the current value of any mapped CellML fields
-                      CALL CELLML_CELLML_TO_FIELD_UPDATE(CELLML_ENVIRONMENT,ERR,ERROR,*999)
-
+                      IF(.NOT. KEEP_STATE) THEN
+                        !Make sure fields have been updated to the current value of any mapped CellML fields
+                        CALL CELLML_CELLML_TO_FIELD_UPDATE(CELLML_ENVIRONMENT,ERR,ERROR,*999)
+                      ENDIF
+                      
 #ifdef USE_CUSTOM_PROFILING
                       CALL CustomProfilingStop('1.1.6. cellml field update')
 #endif
@@ -3961,7 +4002,7 @@ CONTAINS
     EXTERNAL :: Problem_SolverDAECellMLRHSPetsc
 
 
-    ENTERS("SOLVER_DAE_BFD_INTEGRATE",ERR,ERROR,*999)
+    ENTERS("SOLVER_DAE_BDF_INTEGRATE",ERR,ERROR,*999)
 
     NULLIFY(CTX)
     IF(ASSOCIATED(BDF_SOLVER)) THEN
