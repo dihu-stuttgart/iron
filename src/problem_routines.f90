@@ -72,6 +72,7 @@ MODULE PROBLEM_ROUTINES
   USE TIMER
   USE TYPES
   USE CUSTOM_PROFILING
+  USE MPI
 
 #include "macros.h"  
 
@@ -83,6 +84,7 @@ MODULE PROBLEM_ROUTINES
   REAL(DP), PUBLIC :: TIMING_ODE_SOLVER = 0_DP
   REAL(DP), PUBLIC :: TIMING_PARABOLIC_SOLVER = 0_DP
   REAL(DP), PUBLIC :: TIMING_FE_SOLVER = 0_DP
+  REAL(DP), PUBLIC :: tstart, tend, t1D3D=0.0_DP, t3D1D=0.0_DP
 
   !Module parameters
 
@@ -153,6 +155,7 @@ MODULE PROBLEM_ROUTINES
   PUBLIC PROBLEM_SOLVERS_DESTROY
   
   PUBLIC PROBLEM_USER_NUMBER_FIND
+  
   
 CONTAINS
 
@@ -708,7 +711,12 @@ CONTAINS
 #ifdef USE_CUSTOM_PROFILING
                 CALL CustomProfilingStart("1.3.1 pre solve")
 #endif
+                tstart = MPI_WTIME()
                 CALL PROBLEM_CONTROL_LOOP_PRE_LOOP(CONTROL_LOOP,ERR,ERROR,*999)
+                tend = MPI_WTIME()
+                t1D3D = t1D3D + (tend-tstart)
+                
+                
 #ifdef USE_CUSTOM_PROFILING
                 CALL CustomProfilingStop("1.3.1 pre solve")
 #endif
@@ -777,7 +785,11 @@ CONTAINS
 #ifdef USE_CUSTOM_PROFILING
                 CALL CustomProfilingStart("1.3.4 post solve (file output)")
 #endif
+                tstart = MPI_WTIME()
                 CALL PROBLEM_CONTROL_LOOP_POST_LOOP(CONTROL_LOOP,ERR,ERROR,*999)
+                tend = MPI_WTIME()
+                t3D1D = t3D1D + (tend-tstart)
+                
 #ifdef USE_CUSTOM_PROFILING
                 CALL CustomProfilingStop("1.3.4 post solve (file output)")
 #endif
