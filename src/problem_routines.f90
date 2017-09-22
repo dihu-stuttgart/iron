@@ -2491,7 +2491,7 @@ CONTAINS
 #ifdef USE_CUSTOM_PROFILING
             CALL CustomProfilingStart("level 2: 3D solve")
 #endif
-            CALL Problem_SolverEquationsStaticNonlinearSolve(SOLVER_EQUATIONS,ERR,ERROR,*999)
+            !CALL Problem_SolverEquationsStaticNonlinearSolve(SOLVER_EQUATIONS,ERR,ERROR,*999)
 
 #ifdef USE_CUSTOM_PROFILING
             CALL CustomProfilingStop("level 2: 3D solve")
@@ -2533,7 +2533,7 @@ CONTAINS
             CALL CustomProfilingStart("level 2: 1D solve")
 #endif
 
-            CALL Problem_SolverEquationsDynamicLinearSolve(SOLVER_EQUATIONS,ERR,ERROR,*999)
+            !CALL Problem_SolverEquationsDynamicLinearSolve(SOLVER_EQUATIONS,ERR,ERROR,*999)
 
 #ifdef USE_CUSTOM_PROFILING
             CALL CustomProfilingStop("level 2: 1D solve")
@@ -3249,7 +3249,7 @@ CONTAINS
           CALL CustomProfilingStart("level 2: 0D solve")
 #endif
 
-          CALL PROBLEM_CELLML_EQUATIONS_SOLVE(SOLVER%CELLML_EQUATIONS,ERR,ERROR,*999)
+          !CALL PROBLEM_CELLML_EQUATIONS_SOLVE(SOLVER%CELLML_EQUATIONS,ERR,ERROR,*999)
 
 #ifdef USE_CUSTOM_PROFILING
           CALL CustomProfilingStop("level 2: 0D solve")
