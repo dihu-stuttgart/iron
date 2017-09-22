@@ -2471,7 +2471,7 @@ CONTAINS
 #ifdef USE_CUSTOM_PROFILING
             CALL CustomProfilingStart("1.3.3.1 static nonlinear solve (*)")
 #endif
-            CALL Problem_SolverEquationsStaticNonlinearSolve(SOLVER_EQUATIONS,ERR,ERROR,*999)
+            !CALL Problem_SolverEquationsStaticNonlinearSolve(SOLVER_EQUATIONS,ERR,ERROR,*999)
 
 #ifdef USE_CUSTOM_PROFILING
             CALL CustomProfilingStop("1.3.3.1 static nonlinear solve (*)")
@@ -2511,7 +2511,7 @@ CONTAINS
             CALL CustomProfilingStart("1.2. dynamic linear solve (*)")
 #endif
 
-            CALL Problem_SolverEquationsDynamicLinearSolve(SOLVER_EQUATIONS,ERR,ERROR,*999)
+            !CALL Problem_SolverEquationsDynamicLinearSolve(SOLVER_EQUATIONS,ERR,ERROR,*999)
 
 #ifdef USE_CUSTOM_PROFILING
             CALL CustomProfilingStop("1.2. dynamic linear solve (*)")
@@ -3223,7 +3223,7 @@ CONTAINS
           CALL CustomProfilingStart("1.1. problem cellml solve")
 #endif
 
-          CALL PROBLEM_CELLML_EQUATIONS_SOLVE(SOLVER%CELLML_EQUATIONS,ERR,ERROR,*999)
+          !CALL PROBLEM_CELLML_EQUATIONS_SOLVE(SOLVER%CELLML_EQUATIONS,ERR,ERROR,*999)
 
 #ifdef USE_CUSTOM_PROFILING
           CALL CustomProfilingStop("1.1. problem cellml solve")
